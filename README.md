@@ -1,9 +1,13 @@
+## 前提
+- テストでアクセスしているサイトにアクセスできる権限があること
+- 組織情報にアクセスできる権限があること
+
 ## セットアップ
-- mcp-bridge/mcp-server/config配下にNeWarpにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
+- mcp-bridge/mcp-server/config配下に対象サイトにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
 - mcp-bridge/mcp-server/config配下に`logininfo.json`として保存
 ```
 {
-    "ENGAGE_CODE": "${会社名小文字}$",
+    "ENGAGE_CODE": "${会社名小文字}",
     "USER_ID": "${ログインユーザID}",
     "PASSWORD": "${ログインパスワード}"
 }
