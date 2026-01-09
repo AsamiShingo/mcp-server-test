@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "newarp_server": {
+      "command": "python",
+      "args": ["/app/mcp-server/mcp_newarp.py"]
+    }
+  }
+}
