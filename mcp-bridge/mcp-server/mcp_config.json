@@ -2,7 +2,7 @@
   "mcpServers": {
     "newarp_server": {
       "command": "python",
-      "args": ["/app/mcp-server/mcp_newarp.py"]
+      "args": ["/app/mcp-server/mcp-newarp/mcp_newarp.py"]
     }
   }
 }

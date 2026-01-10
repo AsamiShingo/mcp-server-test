@@ -1,16 +1,18 @@
 from mcp.server.fastmcp import FastMCP
 from typing import Dict
+from pathlib import Path
 import json
 import requests
 import os
 
+BASE_DIR = Path(__file__).resolve().parent
 mcp = FastMCP("NeWarp MCP Server")
 
-with open('config/url.json', 'r', encoding='utf-8') as f:
+with open(BASE_DIR / 'config' / 'url.json', 'r', encoding='utf-8') as f:
     newarp_url = json.load(f)
 
 def login_prog(session: requests.Session):
-    with open('config/logininfo.json', 'r', encoding='utf-8') as f:
+    with open(BASE_DIR / 'config' / 'logininfo.json', 'r', encoding='utf-8') as f:
         user_info = json.load(f)
 
     payload = {
@@ -42,7 +44,7 @@ def dewonload_division_master(session: requests.Session):
         "divisionName": "",
         "divisionShortName": ""
     }
-    download_json(session, url, payload, "newarp_data/事業部マスタ.json")
+    download_json(session, url, payload, BASE_DIR / "newarp_data" / "事業部マスタ.json")
 
 # 部門マスタ
 def dewonload_department_master(session: requests.Session):
@@ -52,7 +54,7 @@ def dewonload_department_master(session: requests.Session):
         "departmentName": "",
         "departmentShortName": ""
     }
-    download_json(session, url, payload, "newarp_data/部門マスタ.json")
+    download_json(session, url, payload, BASE_DIR / "newarp_data" / "部門マスタ.json")
 
 # 課マスタ
 def dewonload_group_master(session: requests.Session):
@@ -63,7 +65,7 @@ def dewonload_group_master(session: requests.Session):
         "groupName": "",
         "groupShortName": ""
     }
-    download_json(session, url, payload, "newarp_data/課マスタ.json")
+    download_json(session, url, payload, BASE_DIR / "newarp_data" / "課マスタ.json")
 
 @mcp.tool(
     name="get_company_organization_master",
@@ -76,9 +78,9 @@ def dewonload_group_master(session: requests.Session):
 def get_company_organization_master() -> dict:
     try:
         required_files = [
-            "newarp_data/事業部マスタ.json",
-            "newarp_data/部門マスタ.json",
-            "newarp_data/課マスタ.json",
+            BASE_DIR / "newarp_data" / "事業部マスタ.json",
+            BASE_DIR / "newarp_data" / "部門マスタ.json",
+            BASE_DIR / "newarp_data" / "課マスタ.json",
         ]
         if any(not os.path.isfile(f) for f in required_files):
             with requests.Session() as session:

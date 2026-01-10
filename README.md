@@ -3,8 +3,8 @@
 - 組織情報にアクセスできる権限があること
 
 ## セットアップ
-- mcp-bridge/mcp-server/config配下に対象サイトにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
-- mcp-bridge/mcp-server/config配下に`logininfo.json`として保存
+- mcp-bridge/config配下に対象サイトにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
+- mcp-bridge/mcp-server/mcp-newarp/config配下に`logininfo.json`として保存
 ```
 {
     "ENGAGE_CODE": "${会社名小文字}",
@@ -12,7 +12,7 @@
     "PASSWORD": "${ログインパスワード}"
 }
 ```
-- mcp-bridge/mcp-server/config配下に`url.json`として保存
+- mcp-bridge/mcp-server/mcp-newarp/config配下に`url.json`として保存
 ```
 {
     "LOGIN": "${ログイン用URL}$",
@@ -32,5 +32,7 @@
 - http://localhost:8080
 
 ## 開発環境利用
-- sudo docker compose up -d
+- sudo docker compose up -d python-dev
 - sudo docker exec -it python-dev bash
+- docker内でコンパイル等実施
+- sudo docker compose down python-dev

@@ -50,6 +50,7 @@ services:
   python-dev:
     build: ./python-dev
     container_name: python-dev
+    profiles: ["dev"]
     working_dir: /app
     environment:
       TZ: JST-9
