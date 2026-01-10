@@ -22,7 +22,7 @@
 }
 ```
 - sudo docker compose up -d --build
-- sudo docker compose exec ollama ollama pull llama3.1:8b
+- sudo docker compose exec ollama ollama pull okamototk/llama-swallow:8b
 - sudo docker compose down
 
 ## 起動

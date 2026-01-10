@@ -45,7 +45,7 @@ services:
       - "8080:8080"  # 外部アクセス用
     environment:
       - OLLAMA_BRIDGE_URL=http://mcp-bridge:8000/api/chat
-      - OLLAMA_MODEL=llama3.1:8b
+      - OLLAMA_MODEL=okamototk/llama-swallow:8b
 
   python-dev:
     build: ./python-dev
