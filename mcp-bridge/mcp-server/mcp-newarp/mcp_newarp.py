@@ -384,7 +384,7 @@ def get_user_master_user_name(userName: str) -> dict:
 def get_user_master_group_short_name(groupShortName: str) -> dict:
     """
     Args:
-        group_short_name: 検索グループ短縮名
+        group_short_name: 検索対象のグループ短縮名（完全一致）
     """
     try:
         user_master_file = BASE_DIR / "newarp_data" / "ユーザマスタ.json"
