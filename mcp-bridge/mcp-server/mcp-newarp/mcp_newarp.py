@@ -312,7 +312,7 @@ def get_group_master(groupShortName: str) -> dict:
         }
 
 @mcp.tool(
-    name="get_user_master",
+    name="get_user_master_user_name",
     description=(
         "社員（ユーザ）情報を検索して返すツールです。"
         "社員名（userName）をもとにユーザマスタを検索します。"
@@ -321,7 +321,7 @@ def get_group_master(groupShortName: str) -> dict:
         "例: '山田太郎のメールアドレスは？', '佐藤という名前の社員一覧を出して'"
     )
 )
-def get_user_master(userName: str) -> dict:
+def get_user_master_user_name(userName: str) -> dict:
     """
     Args:
         userName: 検索したい社員名（部分一致）
@@ -343,6 +343,66 @@ def get_user_master(userName: str) -> dict:
         result_data = []
         for user in user_data:
             if userName in user.get("userName"):
+                result_data.append({
+                    "ユーザID": user.get("userId", ""),
+                    "ユーザ名": user.get("userName", ""),
+                    "メールアドレス": user.get("mailAddress", ""),
+                    "グループ短縮名": user.get("groupShortName", ""),
+                    "役職": user.get("position", ""),
+                    "入社日": user.get("joiningDate", "")
+                })
+
+        if not result_data:
+            return {
+                "report_title": "ユーザ情報",
+                "description": "該当する社員が見つかりませんでした。",
+                "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
+                "columns": columns,
+                "data": [],
+            }
+
+        return {
+            "report_title": "ユーザ情報",
+            "description": "これはユーザ情報です。",
+            "analysis_instruction": "質問で求められている情報を文章で回答してください。",
+            "columns": columns,
+            "data": result_data,
+        }
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return {"error": str(e)}
+
+@mcp.tool(
+    name="get_user_master_group_short_name",
+    description=(
+        "社員（ユーザ）情報を検索して返すツールです。"
+        "グループ短縮名（groupShortName）をもとにユーザマスタを検索します。"
+        "グループに所属する社員の氏名、メールアドレス、所属グループ、役職などを知りたい質問のときに使用してください。"
+        "例: 'BTIに所属する社員一覧を出して'"
+    )
+)
+def get_user_master_group_short_name(groupShortName: str) -> dict:
+    """
+    Args:
+        group_short_name: 検索グループ短縮名
+    """
+    try:
+        user_master_file = BASE_DIR / "newarp_data" / "ユーザマスタ.json"
+        if not os.path.isfile(user_master_file):
+            with requests.Session() as session:
+                login_newarp(session)
+                download_user_master(session, user_master_file)
+
+        with open(user_master_file, 'r', encoding='utf-8') as f:
+            user_data = json.load(f)
+
+        columns = [
+            "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
+        ]
+
+        result_data = []
+        for user in user_data:
+            if groupShortName == user.get("groupShortName"):
                 result_data.append({
                     "ユーザID": user.get("userId", ""),
                     "ユーザ名": user.get("userName", ""),
