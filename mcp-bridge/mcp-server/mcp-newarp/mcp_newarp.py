@@ -248,13 +248,14 @@ def get_user_master_user_name(userName: str) -> dict:
             user_data = json.load(f)
 
         columns = [
-            "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
+            "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
         ]
 
         result_data = []
         for user in user_data:
             if userName in user.get("userName"):
                 result_data.append({
+                    "ユーザキー": user.get("userKey", ""),
                     "ユーザID": user.get("userId", ""),
                     "ユーザ名": user.get("userName", ""),
                     "メールアドレス": user.get("mailAddress", ""),
@@ -308,13 +309,14 @@ def get_user_master_group_short_name(groupShortName: str) -> dict:
             user_data = json.load(f)
 
         columns = [
-            "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
+            "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
         ]
 
         result_data = []
         for user in user_data:
             if groupShortName == user.get("groupShortName"):
                 result_data.append({
+                    "ユーザキー": user.get("userKey", ""),
                     "ユーザID": user.get("userId", ""),
                     "ユーザ名": user.get("userName", ""),
                     "メールアドレス": user.get("mailAddress", ""),
@@ -337,6 +339,94 @@ def get_user_master_group_short_name(groupShortName: str) -> dict:
             "description": "これはユーザ情報です。",
             "analysis_instruction": "質問で求められている情報を文章で回答してください。",
             "columns": columns,
+            "data": result_data,
+        }
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return {"error": str(e)}
+    
+
+
+@mcp.tool(
+    name="get_user_evaluation",
+    description=(
+        "社員（ユーザ）の評価面談情報を取得して返すツールです。"
+        "社員名（userName）をもとに検索します。"
+        "userName は部分一致で検索されます。"
+        "社員の自己評価や得意なこと苦手なこと、キャリアプランややりたいことを質問するときに使用してください。"
+        "例: '山田太郎の何が得意？', '佐藤のキャリアプランは何？'"
+    )
+)
+def get_user_evaluation(userName: str) -> dict:
+    """
+    Args:
+        userName: 検索したい社員名（部分一致）
+    """
+    try:
+        user_response = get_user_master_user_name(userName)
+        if "error" in user_response:
+            return user_response
+        elif not user_response.get("data"):
+            return {
+                "report_title": "評価面談",
+                "description": "該当する社員が見つかりませんでした。",
+                "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
+                "columns": user_response.get("columns"),
+                "data": user_response.get("data"),
+            }
+        elif len(user_response.get("data")) > 1:            
+            return {
+                "report_title": "評価面談",
+                "description": "該当する社員が複数見つかりました。",
+                "analysis_instruction": "該当者を1名に絞り込める情報を渡すようにユーザーに伝えてください。",
+                "columns": user_response.get("columns"),
+                "data": user_response.get("data"),
+            }
+        
+        user_key = user_response.get("data")[0].get("ユーザキー")
+
+        fb_interview_sheet_file = BASE_DIR / "newarp_data" / ("FB面談シート_" + str(user_key) + ".json")
+        if not os.path.isfile(fb_interview_sheet_file):
+            with requests.Session() as session:
+                login_newarp(session)
+                download_fb_interview_sheet(session, fb_interview_sheet_file, user_key)
+
+        with open(fb_interview_sheet_file, 'r', encoding='utf-8') as f:
+            fb_interview_sheet_data = json.load(f)
+
+        result_data = {}
+        result_data["評価年月"] = fb_interview_sheet_data.get("info").get("periodName")
+        result_data["将来のあるべき姿"] = fb_interview_sheet_data.get("info").get("vision")
+        result_data["アピールポイント"] = fb_interview_sheet_data.get("info").get("appeal")
+        result_data["会社へ一言"] = fb_interview_sheet_data.get("info").get("note")
+        result_data["技術分類"] = fb_interview_sheet_data.get("info").get("evaluationKind")
+        result_data["評価ステージ"] = fb_interview_sheet_data.get("info").get("evaluationStage")
+        result_data["評価クラス"] = fb_interview_sheet_data.get("info").get("evaluationClass")
+        result_data["管理職からの期待"] = fb_interview_sheet_data.get("info").get("expectation")
+
+        past_goals = []        
+        for past_goal in fb_interview_sheet_data.get("pastDetails"):
+            past_goals.append({
+                "目標": past_goal.get("goal", ""),
+                "達成条件": past_goal.get("condition", ""),
+                "達成度(%)": past_goal.get("assessment", ""),
+                "実行結果コメント": past_goal.get("comment", ""),
+                "管理職からのコメント": past_goal.get("assessmentComment", ""),
+            })
+        result_data["前期目標振り返り"] = past_goals
+
+        next_goals = []        
+        for next_goal in fb_interview_sheet_data.get("pastDetails"):
+            next_goals.append({
+                "目標": next_goal.get("goal", ""),
+                "達成条件": next_goal.get("condition", ""),
+            })
+        result_data["来季目標"] = next_goals
+
+        return {
+            "report_title": "評価面談",
+            "description": "これは評価面談情報です。",
+            "analysis_instruction": "質問で求められている情報を文章で回答してください。",
             "data": result_data,
         }
     except Exception as e:

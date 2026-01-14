@@ -91,3 +91,13 @@ def download_user_master(session: requests.Session, save_filepath: str):
         "authorityId": ""
     }
     download_json(session, url, referer, payload, save_filepath)
+
+# FB面談シート
+def download_fb_interview_sheet(session: requests.Session, save_filepath: str, user_key: str):
+    url = NEWARP_URLS["GET_FB_INTERVIEW_SHEET"]
+    referer = NEWARP_URLS["GET_FB_INTERVIEW_SHEET_REFERER"]
+    payload = {
+        "userKey": user_key,
+        "goalManagementPeriodId": NEWARP_USER_INFO["FB_INTERVIEW_YEAR_MONTH"]
+    }
+    download_json(session, url, referer, payload, save_filepath)

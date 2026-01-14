@@ -12,6 +12,7 @@
     "USER_ID": "${ログインユーザID}",
     "PASSWORD": "${ログインパスワード}",
     "PROC_USER_KEY": "${利用者のユーザキー}"
+    "FB_INTERVIEW_YEAR_MONTH": "${FB面談対象年月yyyymm}"
 }
 ```
 - mcp-bridge/mcp-server/mcp-newarp/config配下に`url.json`として保存
@@ -26,6 +27,10 @@
     "GET_GROUP_MASTER_REFERER": "${グループマスタ取得用RefererURL}",
     "GET_USER_MASTER": "${ユーザマスタ取得用URL}",
     "GET_USER_MASTER_REFERER": "${ユーザマスタ取得用RefererURL}"
+    "GET_USER_MASTER": "${ユーザマスタ取得用URL}",
+    "GET_USER_MASTER_REFERER": "${ユーザマスタ取得用RefererURL}",
+    "GET_FB_INTERVIEW_SHEET": "${FB面談シート取得用URL}",
+    "GET_FB_INTERVIEW_SHEET_REFERER": "${FB面談シート取得用RefererURL}"
 }
 ```
 - sudo docker compose up -d --build
