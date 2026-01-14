@@ -37,9 +37,8 @@ def download_json(session: requests.Session, url: str, referer: str, payload, sa
     response.raise_for_status()
 
     response_json = response.json()
-    data_only = response_json.get('data')
     with open(save_filepath, 'w', encoding='utf-8') as f:
-        json.dump(data_only, f, ensure_ascii=False, indent=2)
+        json.dump(response_json, f, ensure_ascii=False, indent=2)
 
 
 # 事業部マスタ
@@ -96,6 +95,16 @@ def download_user_master(session: requests.Session, save_filepath: str):
 def download_fb_interview_sheet(session: requests.Session, save_filepath: str, user_key: str):
     url = NEWARP_URLS["GET_FB_INTERVIEW_SHEET"]
     referer = NEWARP_URLS["GET_FB_INTERVIEW_SHEET_REFERER"]
+    payload = {
+        "userKey": user_key,
+        "goalManagementPeriodId": NEWARP_USER_INFO["FB_INTERVIEW_YEAR_MONTH"]
+    }
+    download_json(session, url, referer, payload, save_filepath)
+
+# 評価ABC
+def download_evaluation_abc(session: requests.Session, save_filepath: str, user_key: str):
+    url = NEWARP_URLS["GET_EVALUATION"]
+    referer = NEWARP_URLS["GET_EVALUATION_REFERER"]
     payload = {
         "userKey": user_key,
         "goalManagementPeriodId": NEWARP_USER_INFO["FB_INTERVIEW_YEAR_MONTH"]

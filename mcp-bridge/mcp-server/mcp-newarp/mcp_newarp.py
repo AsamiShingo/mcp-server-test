@@ -36,13 +36,13 @@ def get_company_organization_master() -> dict:
                 dewonload_group_master(session, required_files[2])
 
         with open(required_files[0], 'r', encoding='utf-8') as f:
-            division_data = json.load(f)
+            division_data = json.load(f).get("data")
 
         with open(required_files[1], 'r', encoding='utf-8') as f:
-            department_data = json.load(f)
+            department_data = json.load(f).get("data")
 
         with open(required_files[2], 'r', encoding='utf-8') as f:
-            group_data = json.load(f)
+            group_data = json.load(f).get("data")
 
         division_map = {d["divisionCode"]: d for d in division_data}
         department_map = {d["departmentCode"]: d for d in department_data}
@@ -245,7 +245,7 @@ def get_user_master_user_name(userName: str) -> dict:
                 download_user_master(session, user_master_file)
 
         with open(user_master_file, 'r', encoding='utf-8') as f:
-            user_data = json.load(f)
+            user_data = json.load(f).get("data")
 
         columns = [
             "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
@@ -306,7 +306,7 @@ def get_user_master_group_short_name(groupShortName: str) -> dict:
                 download_user_master(session, user_master_file)
 
         with open(user_master_file, 'r', encoding='utf-8') as f:
-            user_data = json.load(f)
+            user_data = json.load(f).get("data")
 
         columns = [
             "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
@@ -354,7 +354,7 @@ def get_user_master_group_short_name(groupShortName: str) -> dict:
         "社員名（userName）をもとに検索します。"
         "userName は部分一致で検索されます。"
         "社員の自己評価や得意なこと苦手なこと、キャリアプランややりたいことを質問するときに使用してください。"
-        "例: '山田太郎の何が得意？', '佐藤のキャリアプランは何？'"
+        "例: '山田太郎の何が得意？', '佐藤のキャリアプランは何？', '佐藤のスキルは何が得意？'"
     )
 )
 def get_user_evaluation(userName: str) -> dict:
@@ -392,7 +392,16 @@ def get_user_evaluation(userName: str) -> dict:
                 download_fb_interview_sheet(session, fb_interview_sheet_file, user_key)
 
         with open(fb_interview_sheet_file, 'r', encoding='utf-8') as f:
-            fb_interview_sheet_data = json.load(f)
+            fb_interview_sheet_data = json.load(f).get("data")
+
+        evaluation_abc_file = BASE_DIR / "newarp_data" / ("評価ABC_" + str(user_key) + ".json")
+        if not os.path.isfile(evaluation_abc_file):
+            with requests.Session() as session:
+                login_newarp(session)
+                download_evaluation_abc(session, evaluation_abc_file, user_key)
+
+        with open(evaluation_abc_file, 'r', encoding='utf-8') as f:
+            evaluation_abc_data = json.load(f)
 
         result_data = {}
         result_data["評価年月"] = fb_interview_sheet_data.get("info").get("periodName")
@@ -422,6 +431,20 @@ def get_user_evaluation(userName: str) -> dict:
                 "達成条件": next_goal.get("condition", ""),
             })
         result_data["来季目標"] = next_goals
+
+        skill_evaluations = []
+        for skill_evaluation_self in evaluation_abc_data.get("data"):
+            if skill_evaluation_self["groupName"] == "業績考課":
+                continue
+
+            skill_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == skill_evaluation_self["evaluationKindId"]][0]
+            skill_evaluations.append({
+                "スキル種類": skill_evaluation_self.get("groupName", ""),
+                "スキル名": skill_evaluation_self.get("evaluationKind", ""),
+                "自己評価得点": skill_evaluation_self.get("itemPoints", ""),
+                "管理職評価得点": skill_evaluation_not_self.get("itemPoints", "")
+            })
+        result_data["スキル評価得点"] = skill_evaluations
 
         return {
             "report_title": "評価面談",
