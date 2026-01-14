@@ -434,7 +434,9 @@ def get_user_evaluation(userName: str) -> dict:
 
         skill_evaluations = []
         for skill_evaluation_self in evaluation_abc_data.get("data"):
-            if skill_evaluation_self["groupName"] == "業績考課":
+            if skill_evaluation_self["groupName"] == "業績考課" or skill_evaluation_self["groupName"] == "技術考課":
+                continue
+            if not skill_evaluation_self["itemPoints"]:
                 continue
 
             skill_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == skill_evaluation_self["evaluationKindId"]][0]
@@ -444,7 +446,23 @@ def get_user_evaluation(userName: str) -> dict:
                 "自己評価得点": skill_evaluation_self.get("itemPoints", ""),
                 "管理職評価得点": skill_evaluation_not_self.get("itemPoints", "")
             })
-        result_data["スキル評価得点"] = skill_evaluations
+        result_data["能力評価得点"] = skill_evaluations
+
+        technical_evaluations = []
+        for technical_evaluation_self in evaluation_abc_data.get("data"):
+            if technical_evaluation_self["groupName"] != "技術考課":
+                continue
+            if not technical_evaluation_self["itemPoints"]:
+                continue
+
+            technical_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == technical_evaluation_self["evaluationKindId"]][0]
+            technical_evaluations.append({
+                "スキル種類": technical_evaluation_self.get("groupName", ""),
+                "スキル名": technical_evaluation_self.get("evaluationKind", ""),
+                "自己評価得点": technical_evaluation_self.get("itemPoints", ""),
+                "管理職評価得点": technical_evaluation_not_self.get("itemPoints", "")
+            })
+        result_data["技術評価得点"] = technical_evaluations
 
         return {
             "report_title": "評価面談",
