@@ -30,7 +30,9 @@
     "GET_USER_MASTER": "${ユーザマスタ取得用URL}",
     "GET_USER_MASTER_REFERER": "${ユーザマスタ取得用RefererURL}",
     "GET_FB_INTERVIEW_SHEET": "${FB面談シート取得用URL}",
-    "GET_FB_INTERVIEW_SHEET_REFERER": "${FB面談シート取得用RefererURL}"
+    "GET_FB_INTERVIEW_SHEET_REFERER": "${FB面談シート取得用RefererURL}",
+    "GET_EVALUATION": "${評価ABC取得用URL}",
+    "GET_EVALUATION_REFERER": "${評価ABC取得用URL}"
 }
 ```
 - sudo docker compose up -d --build
