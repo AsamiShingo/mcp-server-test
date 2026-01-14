@@ -24,7 +24,7 @@ MODEL_NAME = os.environ.get('OLLAMA_MODEL', 'llama3.1:8b')
 conversation_history: Dict[str, List[Dict]] = {}
 
 # 保持する最大件数
-MAX_HISTORY = 30
+MAX_HISTORY =10
 
 class ChatRequest(BaseModel):
     user_id: str
