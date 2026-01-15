@@ -18,10 +18,15 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
+  mcp-newarp:
+    build: ./mcp-newarp
+    volumes:
+      - ./mcp-newarp:/app
+    environment:
+      MCP_HTTP_PORT: "8081"
+
   mcp-bridge:
     build: ./mcp-bridge
-    volumes:
-      - ./mcp-bridge/mcp-server:/app/mcp-server
     ports:
       - "8000:8000"
     depends_on:
@@ -42,7 +47,7 @@ services:
       mcp-bridge:
         condition: service_healthy
     ports:
-      - "8080:8080"  # 外部アクセス用
+      - "8080:8080"
     environment:
       - OLLAMA_BRIDGE_URL=http://mcp-bridge:8000/api/chat
       - OLLAMA_MODEL=okamototk/llama-swallow:8b

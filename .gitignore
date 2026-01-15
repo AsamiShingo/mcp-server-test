@@ -3,5 +3,5 @@
 python-dev/app/*
 
 **/config/**
-**/newarp_data/**
+**/data/**
 !**/.gitkeep

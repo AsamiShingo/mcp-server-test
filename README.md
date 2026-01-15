@@ -4,8 +4,8 @@
 - 会社情報の取り方をぼかすため、あえてURL等のアクセスに必要な情報は分からないようにしています
 
 ## セットアップ
-- mcp-bridge/config配下に対象サイトにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
-- mcp-bridge/mcp-server/mcp-newarp/config配下に`logininfo.json`として保存
+- mcp-newarp/config配下に対象サイトにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
+- mcp-newarp/config配下に`logininfo.json`として保存
 ```
 {
     "ENGAGE_CODE": "${会社名小文字}",
@@ -15,7 +15,7 @@
     "FB_INTERVIEW_YEAR_MONTH": "${FB面談対象年月yyyymm}"
 }
 ```
-- mcp-bridge/mcp-server/mcp-newarp/config配下に`url.json`として保存
+- mcp-newarp/config配下に`url.json`として保存
 ```
 {
     "LOGIN": "${ログイン用URL}",

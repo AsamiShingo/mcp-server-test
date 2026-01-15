@@ -1,3 +1,0 @@
-mcp
-ollama-mcp-bridge
-requests

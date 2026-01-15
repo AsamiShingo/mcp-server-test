@@ -1,4 +1,4 @@
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 from pathlib import Path
 import json
 import requests
@@ -10,23 +10,12 @@ BASE_DIR = Path(__file__).resolve().parent
     
 mcp = FastMCP("NeWarp MCP Server")
 
-@mcp.tool(
-    name="get_company_organization_master",
-    description=(
-        "会社全体の組織構造を一覧で取得するツールです。"
-        "事業部・部門・グループのすべての階層を含む組織マスタを返します。"
-        "組織の全体像を把握したい場合や、"
-        "どの事業部・部門・グループが存在するか分からない場合に使用してください。"
-        "他の組織検索ツール（事業部・部門・グループ指定）の前段として利用されます。"
-        "例: '会社の組織構成を教えて', 'どんな事業部があるか一覧で見たい'"
-    )
-)
-def get_company_organization_master() -> dict:
+def get_company_organization_data() -> dict:
     try:
         required_files = [
-            BASE_DIR / "newarp_data" / "事業部マスタ.json",
-            BASE_DIR / "newarp_data" / "部門マスタ.json",
-            BASE_DIR / "newarp_data" / "課マスタ.json",
+            BASE_DIR / "data" / "事業部マスタ.json",
+            BASE_DIR / "data" / "部門マスタ.json",
+            BASE_DIR / "data" / "課マスタ.json",
         ]
         if any(not os.path.isfile(f) for f in required_files):
             with requests.Session() as session:
@@ -79,6 +68,69 @@ def get_company_organization_master() -> dict:
         ]
 
         return {
+            "columns": columns,
+            "data": result_data,
+        }
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return {"error": str(e)}
+    
+def get_user_data() -> dict:
+    """
+    Args:
+        userName: 検索したい社員名（部分一致）
+    """
+    try:
+        user_master_file = BASE_DIR / "data" / "ユーザマスタ.json"
+        if not os.path.isfile(user_master_file):
+            with requests.Session() as session:
+                login_newarp(session)
+                download_user_master(session, user_master_file)
+
+        with open(user_master_file, 'r', encoding='utf-8') as f:
+            user_data = json.load(f).get("data")
+
+        columns = [
+            "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
+        ]
+
+        result_data = []
+        for user in user_data:
+            result_data.append({
+                "ユーザキー": user.get("userKey", ""),
+                "ユーザID": user.get("userId", ""),
+                "ユーザ名": user.get("userName", ""),
+                "メールアドレス": user.get("mailAddress", ""),
+                "グループ短縮名": user.get("groupShortName", ""),
+                "役職": user.get("position", ""),
+                "入社日": user.get("joiningDate", "")
+            })
+
+        return {
+            "columns": columns,
+            "data": result_data,
+        }
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return {"error": str(e)}
+    
+@mcp.tool(
+    name="get_company_organization_master",
+    description=(
+        "会社全体の組織構造を一覧で取得するツールです。"
+        "事業部・部門・グループのすべての階層を含む組織マスタを返します。"
+        "組織の全体像を把握したい場合や、"
+        "どの事業部・部門・グループが存在するか分からない場合に使用してください。"
+        "他の組織検索ツール（事業部・部門・グループ指定）の前段として利用されます。"
+        "例: '会社の組織構成を教えて', 'どんな事業部があるか一覧で見たい'"
+    )
+)
+def get_company_organization_master() -> dict:
+    result = get_company_organization_data()
+    if "error" in result:
+        return result
+
+    return {
             "report_title": "会社組織情報",
             "description": (
                 "これは会社全体の組織情報です。"
@@ -89,12 +141,9 @@ def get_company_organization_master() -> dict:
                 "このデータから事業部・部門・グループの階層構造を整理し、質問で求められている組織単位や名称を特定してください。"
                 "全体構造の説明が求められている場合は、上位から順に分かりやすく文章でまとめてください。"
             ),
-            "columns": columns,
-            "data": result_data,
+            "columns": result["columns"],
+            "data": result["data"],
         }
-    except Exception as e:
-        print(str(e), file=sys.stderr)
-        return {"error": str(e)}
     
 @mcp.tool(
     name="get_division_master",
@@ -111,7 +160,7 @@ def get_division_master(divisionShortName: str) -> dict:
     Args:
         divisionShortName: 検索対象の事業部短縮名（完全一致）
     """
-    result = get_company_organization_master()
+    result = get_company_organization_data()
     if "error" in result:
         return result
     
@@ -153,7 +202,7 @@ def get_department_master(departmentShortName: str) -> dict:
     Args:
         departmentShortName: 検索対象の部門短縮名（完全一致）
     """
-    result = get_company_organization_master()
+    result = get_company_organization_data()
     if "error" in result:
         return result
     
@@ -194,8 +243,8 @@ def get_group_master(groupShortName: str) -> dict:
     """
     Args:
         groupShortName: 検索対象のグループ短縮名（完全一致）
-    """    
-    result = get_company_organization_master()
+    """
+    result = get_company_organization_data()
     if "error" in result:
         return result
     
@@ -237,52 +286,32 @@ def get_user_master_user_name(userName: str) -> dict:
     Args:
         userName: 検索したい社員名（部分一致）
     """
-    try:
-        user_master_file = BASE_DIR / "newarp_data" / "ユーザマスタ.json"
-        if not os.path.isfile(user_master_file):
-            with requests.Session() as session:
-                login_newarp(session)
-                download_user_master(session, user_master_file)
+    result = get_user_data()
+    if "error" in result:
+        return result
+    
+    all_data = result["data"]
+    result_data = []
+    for data in all_data:
+        if userName in data["ユーザ名"]:
+            result_data.append(data)
 
-        with open(user_master_file, 'r', encoding='utf-8') as f:
-            user_data = json.load(f).get("data")
-
-        columns = [
-            "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
-        ]
-
-        result_data = []
-        for user in user_data:
-            if userName in user.get("userName"):
-                result_data.append({
-                    "ユーザキー": user.get("userKey", ""),
-                    "ユーザID": user.get("userId", ""),
-                    "ユーザ名": user.get("userName", ""),
-                    "メールアドレス": user.get("mailAddress", ""),
-                    "グループ短縮名": user.get("groupShortName", ""),
-                    "役職": user.get("position", ""),
-                    "入社日": user.get("joiningDate", "")
-                })
-
-        if not result_data:
-            return {
-                "report_title": "ユーザ情報",
-                "description": "該当する社員が見つかりませんでした。",
-                "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
-                "columns": columns,
-                "data": [],
-            }
-
+    if not result_data:
         return {
             "report_title": "ユーザ情報",
-            "description": "これはユーザ情報です。",
-            "analysis_instruction": "質問で求められている情報を文章で回答してください。",
-            "columns": columns,
-            "data": result_data,
+            "description": "該当する社員が見つかりませんでした。",
+            "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
+            "columns": result["columns"],
+            "data": [],
         }
-    except Exception as e:
-        print(str(e), file=sys.stderr)
-        return {"error": str(e)}
+
+    return {
+        "report_title": "ユーザ情報",
+        "description": "これはユーザ情報です。",
+        "analysis_instruction": "質問で求められている情報を文章で回答してください。",
+        "columns": result["columns"],
+        "data": result_data,
+    }
 
 @mcp.tool(
     name="get_user_master_group_short_name",
@@ -298,54 +327,32 @@ def get_user_master_group_short_name(groupShortName: str) -> dict:
     Args:
         group_short_name: 検索対象のグループ短縮名（完全一致）
     """
-    try:
-        user_master_file = BASE_DIR / "newarp_data" / "ユーザマスタ.json"
-        if not os.path.isfile(user_master_file):
-            with requests.Session() as session:
-                login_newarp(session)
-                download_user_master(session, user_master_file)
+    result = get_user_data()
+    if "error" in result:
+        return result
+    
+    all_data = result["data"]
+    result_data = []
+    for data in all_data:
+        if groupShortName == data.get("グループ短縮名"):
+            result_data.append(data)
 
-        with open(user_master_file, 'r', encoding='utf-8') as f:
-            user_data = json.load(f).get("data")
-
-        columns = [
-            "ユーザキー", "ユーザID", "ユーザ名", "メールアドレス", "グループ短縮名", "役職", "入社日"
-        ]
-
-        result_data = []
-        for user in user_data:
-            if groupShortName == user.get("groupShortName"):
-                result_data.append({
-                    "ユーザキー": user.get("userKey", ""),
-                    "ユーザID": user.get("userId", ""),
-                    "ユーザ名": user.get("userName", ""),
-                    "メールアドレス": user.get("mailAddress", ""),
-                    "グループ短縮名": user.get("groupShortName", ""),
-                    "役職": user.get("position", ""),
-                    "入社日": user.get("joiningDate", "")
-                })
-
-        if not result_data:
-            return {
-                "report_title": "ユーザ情報",
-                "description": "該当する社員が見つかりませんでした。",
-                "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
-                "columns": columns,
-                "data": [],
-            }
-
+    if not result_data:
         return {
             "report_title": "ユーザ情報",
-            "description": "これはユーザ情報です。",
-            "analysis_instruction": "質問で求められている情報を文章で回答してください。",
-            "columns": columns,
-            "data": result_data,
+            "description": "該当する社員が見つかりませんでした。",
+            "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
+            "columns": result["columns"],
+            "data": [],
         }
-    except Exception as e:
-        print(str(e), file=sys.stderr)
-        return {"error": str(e)}
-    
 
+    return {
+        "report_title": "ユーザ情報",
+        "description": "これはユーザ情報です。",
+        "analysis_instruction": "質問で求められている情報を文章で回答してください。",
+        "columns": result["columns"],
+        "data": result_data,
+    }
 
 @mcp.tool(
     name="get_user_evaluation",
@@ -363,29 +370,33 @@ def get_user_evaluation(userName: str) -> dict:
         userName: 検索したい社員名（部分一致）
     """
     try:
-        user_response = get_user_master_user_name(userName)
+        user_response = get_user_data()
         if "error" in user_response:
             return user_response
-        elif not user_response.get("data"):
+        
+        user_all_data = user_response["data"]
+        user_result_data = [user_data for user_data in user_all_data if userName in user_data["ユーザ名"]]
+
+        if not user_result_data:
             return {
                 "report_title": "評価面談",
                 "description": "該当する社員が見つかりませんでした。",
                 "analysis_instruction": "該当者がいない旨をユーザーに伝えてください。",
                 "columns": user_response.get("columns"),
-                "data": user_response.get("data"),
+                "data": user_result_data,
             }
-        elif len(user_response.get("data")) > 1:            
+        elif len(user_result_data) > 1:            
             return {
                 "report_title": "評価面談",
                 "description": "該当する社員が複数見つかりました。",
                 "analysis_instruction": "該当者を1名に絞り込める情報を渡すようにユーザーに伝えてください。",
                 "columns": user_response.get("columns"),
-                "data": user_response.get("data"),
+                "data": user_result_data,
             }
         
-        user_key = user_response.get("data")[0].get("ユーザキー")
+        user_key = user_result_data[0].get("ユーザキー")
 
-        fb_interview_sheet_file = BASE_DIR / "newarp_data" / ("FB面談シート_" + str(user_key) + ".json")
+        fb_interview_sheet_file = BASE_DIR / "data" / ("FB面談シート_" + str(user_key) + ".json")
         if not os.path.isfile(fb_interview_sheet_file):
             with requests.Session() as session:
                 login_newarp(session)
@@ -394,7 +405,7 @@ def get_user_evaluation(userName: str) -> dict:
         with open(fb_interview_sheet_file, 'r', encoding='utf-8') as f:
             fb_interview_sheet_data = json.load(f).get("data")
 
-        evaluation_abc_file = BASE_DIR / "newarp_data" / ("評価ABC_" + str(user_key) + ".json")
+        evaluation_abc_file = BASE_DIR / "data" / ("評価ABC_" + str(user_key) + ".json")
         if not os.path.isfile(evaluation_abc_file):
             with requests.Session() as session:
                 login_newarp(session)
@@ -475,4 +486,4 @@ def get_user_evaluation(userName: str) -> dict:
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="http", host="0.0.0.0", port=os.getenv("MCP_HTTP_PORT", "8081"))

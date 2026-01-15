@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "newarp_server": {
+      "type": "http",
+      "url": "http://mcp-newarp:8081/mcp"
+    }
+  }
+}
