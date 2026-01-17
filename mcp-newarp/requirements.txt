@@ -1,4 +1,2 @@
-mcp
 requests
-uvicorn
 fastmcp
