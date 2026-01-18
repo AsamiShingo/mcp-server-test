@@ -53,7 +53,7 @@ def chat(req: ChatRequest):
     }
 
     try:
-        resp = requests.post(BRIDGE_URL, json=payload, timeout=60)
+        resp = requests.post(BRIDGE_URL, json=payload, timeout=120)
         resp.raise_for_status()
         result = resp.json()
         ai_message = result.get('message', {}).get('content', 'AIから応答が返っていません')
@@ -68,7 +68,7 @@ def chat(req: ChatRequest):
         return {"reply": ai_message}
 
     except Exception as e:
-        print("error " + str(e))
+        print(f"web-error: {e}")
         return {"reply": f"エラー: {e}"}
 
 @app.get("/")

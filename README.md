@@ -12,7 +12,7 @@
     "USER_ID": "${ログインユーザID}",
     "PASSWORD": "${ログインパスワード}",
     "PROC_USER_KEY": "${利用者のユーザキー}"
-    "FB_INTERVIEW_YEAR_MONTH": "${FB面談対象年月yyyymm}"
+    "FB_INTERVIEW_YEAR_MONTH": [ "${FB面談対象年月yyyymm}", "${FB面談対象年月yyyymm}" ]
 }
 ```
 - mcp-newarp/config配下に`url.json`として保存

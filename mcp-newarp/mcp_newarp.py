@@ -7,7 +7,10 @@ import sys
 from newarp_access import *
 
 BASE_DIR = Path(__file__).resolve().parent
-    
+
+with open(BASE_DIR / 'config' / 'logininfo.json', 'r', encoding='utf-8') as f:
+    NEWARP_USER_INFO = json.load(f)
+
 mcp = FastMCP("NeWarp MCP Server")
 
 def get_company_organization_data() -> dict:
@@ -72,7 +75,7 @@ def get_company_organization_data() -> dict:
             "data": result_data,
         }
     except Exception as e:
-        print(str(e), file=sys.stderr)
+        print(f"会社組織情報取得エラー: {e}", file=sys.stderr)
         return {"error": str(e)}
     
 def get_user_data() -> dict:
@@ -111,7 +114,7 @@ def get_user_data() -> dict:
             "data": result_data,
         }
     except Exception as e:
-        print(str(e), file=sys.stderr)
+        print(f"ユーザ情報取得エラー: {e}", file=sys.stderr)
         return {"error": str(e)}
     
 @mcp.tool(
@@ -395,94 +398,100 @@ def get_user_evaluation(userName: str) -> dict:
             }
         
         user_key = user_result_data[0].get("ユーザキー")
+        user_name = user_result_data[0].get("ユーザ名")
 
-        fb_interview_sheet_file = BASE_DIR / "data" / ("FB面談シート_" + str(user_key) + ".json")
-        if not os.path.isfile(fb_interview_sheet_file):
-            with requests.Session() as session:
-                login_newarp(session)
-                download_fb_interview_sheet(session, fb_interview_sheet_file, user_key)
+        inverview_year_months = NEWARP_USER_INFO["FB_INTERVIEW_YEAR_MONTH"]
+        all_result_data = []
+        for year_month in inverview_year_months:
+            fb_interview_sheet_file = BASE_DIR / "data" / ("FB面談シート_" + str(user_key) + "_" + year_month + ".json")
+            if not os.path.isfile(fb_interview_sheet_file):
+                with requests.Session() as session:
+                    login_newarp(session)
+                    download_fb_interview_sheet(session, fb_interview_sheet_file, user_key, year_month)
 
-        with open(fb_interview_sheet_file, 'r', encoding='utf-8') as f:
-            fb_interview_sheet_data = json.load(f).get("data")
+            with open(fb_interview_sheet_file, 'r', encoding='utf-8') as f:
+                fb_interview_sheet_data = json.load(f).get("data")
 
-        evaluation_abc_file = BASE_DIR / "data" / ("評価ABC_" + str(user_key) + ".json")
-        if not os.path.isfile(evaluation_abc_file):
-            with requests.Session() as session:
-                login_newarp(session)
-                download_evaluation_abc(session, evaluation_abc_file, user_key)
+            evaluation_abc_file = BASE_DIR / "data" / ("評価ABC_" + str(user_key) + "_" + year_month + ".json")
+            if not os.path.isfile(evaluation_abc_file):
+                with requests.Session() as session:
+                    login_newarp(session)
+                    download_evaluation_abc(session, evaluation_abc_file, user_key, year_month)
 
-        with open(evaluation_abc_file, 'r', encoding='utf-8') as f:
-            evaluation_abc_data = json.load(f)
+            with open(evaluation_abc_file, 'r', encoding='utf-8') as f:
+                evaluation_abc_data = json.load(f)
 
-        result_data = {}
-        result_data["評価年月"] = fb_interview_sheet_data.get("info").get("periodName")
-        result_data["将来のあるべき姿"] = fb_interview_sheet_data.get("info").get("vision")
-        result_data["アピールポイント"] = fb_interview_sheet_data.get("info").get("appeal")
-        result_data["会社へ一言"] = fb_interview_sheet_data.get("info").get("note")
-        result_data["技術分類"] = fb_interview_sheet_data.get("info").get("evaluationKind")
-        result_data["評価ステージ"] = fb_interview_sheet_data.get("info").get("evaluationStage")
-        result_data["評価クラス"] = fb_interview_sheet_data.get("info").get("evaluationClass")
-        result_data["管理職からの期待"] = fb_interview_sheet_data.get("info").get("expectation")
+            result_data = {}
+            result_data["評価年月"] = fb_interview_sheet_data.get("info").get("periodName")
+            result_data["将来のあるべき姿"] = fb_interview_sheet_data.get("info").get("vision")
+            result_data["アピールポイント"] = fb_interview_sheet_data.get("info").get("appeal")
+            result_data["会社へ一言"] = fb_interview_sheet_data.get("info").get("note")
+            result_data["技術分類"] = fb_interview_sheet_data.get("info").get("evaluationKind")
+            result_data["評価ステージ"] = fb_interview_sheet_data.get("info").get("evaluationStage")
+            result_data["評価クラス"] = fb_interview_sheet_data.get("info").get("evaluationClass")
+            result_data["管理職からの期待"] = fb_interview_sheet_data.get("info").get("expectation")
 
-        past_goals = []        
-        for past_goal in fb_interview_sheet_data.get("pastDetails"):
-            past_goals.append({
-                "目標": past_goal.get("goal", ""),
-                "達成条件": past_goal.get("condition", ""),
-                "達成度(%)": past_goal.get("assessment", ""),
-                "実行結果コメント": past_goal.get("comment", ""),
-                "管理職からのコメント": past_goal.get("assessmentComment", ""),
-            })
-        result_data["前期目標振り返り"] = past_goals
+            past_goals = []        
+            for past_goal in fb_interview_sheet_data.get("pastDetails"):
+                past_goals.append({
+                    "目標": past_goal.get("goal", ""),
+                    "達成条件": past_goal.get("condition", ""),
+                    "達成度(%)": past_goal.get("assessment", ""),
+                    "実行結果コメント": past_goal.get("comment", ""),
+                    "管理職からのコメント": past_goal.get("assessmentComment", ""),
+                })
+            result_data["前期目標振り返り"] = past_goals
 
-        next_goals = []        
-        for next_goal in fb_interview_sheet_data.get("pastDetails"):
-            next_goals.append({
-                "目標": next_goal.get("goal", ""),
-                "達成条件": next_goal.get("condition", ""),
-            })
-        result_data["来季目標"] = next_goals
+            next_goals = []        
+            for next_goal in fb_interview_sheet_data.get("pastDetails"):
+                next_goals.append({
+                    "目標": next_goal.get("goal", ""),
+                    "達成条件": next_goal.get("condition", ""),
+                })
+            result_data["来季目標"] = next_goals
 
-        skill_evaluations = []
-        for skill_evaluation_self in evaluation_abc_data.get("data"):
-            if skill_evaluation_self["groupName"] == "業績考課" or skill_evaluation_self["groupName"] == "技術考課":
-                continue
-            if not skill_evaluation_self["itemPoints"]:
-                continue
+            skill_evaluations = []
+            for skill_evaluation_self in evaluation_abc_data.get("data"):
+                if skill_evaluation_self["groupName"] == "業績考課" or skill_evaluation_self["groupName"] == "技術考課":
+                    continue
+                if not skill_evaluation_self["itemPoints"]:
+                    continue
 
-            skill_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == skill_evaluation_self["evaluationKindId"]][0]
-            skill_evaluations.append({
-                "スキル種類": skill_evaluation_self.get("groupName", ""),
-                "スキル名": skill_evaluation_self.get("evaluationKind", ""),
-                "自己評価得点": skill_evaluation_self.get("itemPoints", ""),
-                "管理職評価得点": skill_evaluation_not_self.get("itemPoints", "")
-            })
-        result_data["能力評価得点"] = skill_evaluations
+                skill_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == skill_evaluation_self["evaluationKindId"]][0]
+                skill_evaluations.append({
+                    "スキル種類": skill_evaluation_self.get("groupName", ""),
+                    "スキル名": skill_evaluation_self.get("evaluationKind", ""),
+                    "自己評価得点": skill_evaluation_self.get("itemPoints", ""),
+                    "管理職評価得点": skill_evaluation_not_self.get("itemPoints", "")
+                })
+            result_data["能力評価得点"] = skill_evaluations
 
-        technical_evaluations = []
-        for technical_evaluation_self in evaluation_abc_data.get("data"):
-            if technical_evaluation_self["groupName"] != "技術考課":
-                continue
-            if not technical_evaluation_self["itemPoints"]:
-                continue
+            technical_evaluations = []
+            for technical_evaluation_self in evaluation_abc_data.get("data"):
+                if technical_evaluation_self["groupName"] != "技術考課":
+                    continue
+                if not technical_evaluation_self["itemPoints"]:
+                    continue
 
-            technical_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == technical_evaluation_self["evaluationKindId"]][0]
-            technical_evaluations.append({
-                "スキル種類": technical_evaluation_self.get("groupName", ""),
-                "スキル名": technical_evaluation_self.get("evaluationKind", ""),
-                "自己評価得点": technical_evaluation_self.get("itemPoints", ""),
-                "管理職評価得点": technical_evaluation_not_self.get("itemPoints", "")
-            })
-        result_data["技術評価得点"] = technical_evaluations
+                technical_evaluation_not_self = [not_self for not_self in evaluation_abc_data.get("dataNotSelf") if not_self["evaluationKindId"] == technical_evaluation_self["evaluationKindId"]][0]
+                technical_evaluations.append({
+                    "スキル種類": technical_evaluation_self.get("groupName", ""),
+                    "スキル名": technical_evaluation_self.get("evaluationKind", ""),
+                    "自己評価得点": technical_evaluation_self.get("itemPoints", ""),
+                    "管理職評価得点": technical_evaluation_not_self.get("itemPoints", "")
+                })
+            result_data["技術評価得点"] = technical_evaluations
+
+            all_result_data.append(result_data)
 
         return {
-            "report_title": "評価面談",
-            "description": "これは評価面談情報です。",
+            "report_title": "評価面談情報",
+            "description": "これは評価面談情報です。対象者の面談情報と評価得点を過去の情報も含めて取得しています。",
             "analysis_instruction": "質問で求められている情報を文章で回答してください。",
-            "data": result_data,
+            "data": { "対象者名": user_name, "評価情報": all_result_data },
         }
     except Exception as e:
-        print(str(e), file=sys.stderr)
+        print(f"評価面談情報取得エラー：{e}", file=sys.stderr)
         return {"error": str(e)}
 
 if __name__ == "__main__":
