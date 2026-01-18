@@ -124,6 +124,16 @@ h2 {
 <script>
 const USER_ID = 'user_' + Math.random().toString(36).substring(2, 10);
 
+function renderLiteMarkdown(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/^- (.+)$/gm, "<li>$1</li>")
+        .replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>")
+}
+
 async function sendMessage() {
     const input = document.getElementById("msg");
     const chat = document.getElementById("chat-container");
@@ -202,7 +212,7 @@ async function sendMessage() {
                 aiDiv.textContent = "";
             }
 
-            aiDiv.textContent += text;
+            aiDiv.textContent += renderLiteMarkdown(text);
             chat.scrollTop = chat.scrollHeight;
         }
     }

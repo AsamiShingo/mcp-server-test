@@ -61,10 +61,14 @@ def chat(req: ChatRequest, request: Request, response: Response):
 
     add_conversation_history(request_key, "user", req.message)
     
+    request_messages = [
+        *conversation_history[request_key],
+    ]
+
     # Ollama に送信
     payload = {
         "model": MODEL_NAME,
-        "messages": conversation_history[request_key],
+        "messages": request_messages,
         "stream": False
     }
 
@@ -85,9 +89,13 @@ def chat(req: ChatRequest, request: Request, response: Response):
 def stream_ollama(request_key: str, message: str):
     add_conversation_history(request_key, "user", message)
 
+    request_messages = [
+        *conversation_history[request_key],
+    ]
+
     payload = {
         "model": MODEL_NAME,
-        "messages": conversation_history[request_key],
+        "messages": request_messages,
         "stream": True
     }
 
@@ -101,7 +109,6 @@ def stream_ollama(request_key: str, message: str):
 
             data = json.loads(line.decode("utf-8"))
 
-            # Ollama の stream フォーマットに依存
             content = data.get("message", {}).get("content")
             if content:
                 full_reply += content
