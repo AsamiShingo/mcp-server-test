@@ -64,6 +64,13 @@ def chat(req: ChatRequest, request: Request, response: Response):
     request_messages = [
         *conversation_history[request_key],
     ]
+    request_messages[-1]["content"] = f"""
+        質問: {request_messages[-1]["content"]}
+        回答は以下の構成でお願いします:
+        1. 要点
+        2. 詳細
+        3. 補足
+        """
 
     # Ollama に送信
     payload = {
@@ -92,7 +99,14 @@ def stream_ollama(request_key: str, message: str):
     request_messages = [
         *conversation_history[request_key],
     ]
-
+    request_messages[-1]["content"] = f"""
+        質問: {request_messages[-1]["content"]}
+        回答は以下の構成でお願いします:
+        1. 要点
+        2. 詳細
+        3. 補足
+        """
+    
     payload = {
         "model": MODEL_NAME,
         "messages": request_messages,
