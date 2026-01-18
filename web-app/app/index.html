@@ -127,8 +127,9 @@ async function sendMessage() {
         const res = await fetch('/chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
             body: JSON.stringify({
-                user_id: USER_ID,   // ユーザーIDを送信
+                user_id: USER_ID,
                 message: userText
             })
         });

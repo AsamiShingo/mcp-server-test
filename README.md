@@ -5,7 +5,7 @@
 
 ## セットアップ
 - mcp-newarp/config配下に対象サイトにアクセスするための中間証明書をブラウザから取得し、`intermediate.crt`として保存
-- mcp-newarp/config配下に`logininfo.json`として保存
+- mcp-newarp/app/config配下に`logininfo.json`として保存
 ```
 {
     "ENGAGE_CODE": "${会社名小文字}",
@@ -15,7 +15,7 @@
     "FB_INTERVIEW_YEAR_MONTH": [ "${FB面談対象年月yyyymm}", "${FB面談対象年月yyyymm}" ]
 }
 ```
-- mcp-newarp/config配下に`url.json`として保存
+- mcp-newarp/app/config配下に`url.json`として保存
 ```
 {
     "LOGIN": "${ログイン用URL}",

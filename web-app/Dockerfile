@@ -10,8 +10,7 @@ WORKDIR /web-app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ソースコードをコピー
-COPY . .
+WORKDIR /app
 
 # uvicorn で FastAPI を起動
 # モジュール名を web-app.py に変更したので web_app:app にする

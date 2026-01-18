@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
 import requests
+import uuid
 from typing import Dict, List
 
 app = FastAPI()
@@ -30,25 +31,38 @@ class ChatRequest(BaseModel):
     user_id: str
     message: str
 
+def get_or_create_session_id(request: Request, response: Response) -> str:
+    session_id = request.cookies.get("session_id")
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            samesite="lax",
+        )
+    return session_id
+
+def add_conversation_history(request_key: str, role: str, message: str):
+    if request_key not in conversation_history:
+        conversation_history[request_key] = []
+
+    conversation_history[request_key].append({"role": role, "content": message})
+
+    if len(conversation_history[request_key]) > MAX_HISTORY:
+        conversation_history[request_key] = conversation_history[request_key][-MAX_HISTORY:]
+
 @app.post("/chat")
-def chat(req: ChatRequest):
-    user_id = req.user_id
-    user_message = req.message
+def chat(req: ChatRequest, request: Request, response: Response):
+    session_id = get_or_create_session_id(request, response)
+    request_key = f"{session_id}_{req.user_id}"
 
-    if user_id not in conversation_history:
-        conversation_history[user_id] = []
-
-    # 最新メッセージを追加
-    conversation_history[user_id].append({"role": "user", "content": user_message})
-
-    # 履歴を MAX_HISTORY 件に制限
-    if len(conversation_history[user_id]) > MAX_HISTORY:
-        conversation_history[user_id] = conversation_history[user_id][-MAX_HISTORY:]
-
+    add_conversation_history(request_key, "user", req.message)
+    
     # Ollama に送信
     payload = {
         "model": MODEL_NAME,
-        "messages": conversation_history[user_id],
+        "messages": conversation_history[request_key],
         "stream": False
     }
 
@@ -58,12 +72,7 @@ def chat(req: ChatRequest):
         result = resp.json()
         ai_message = result.get('message', {}).get('content', 'AIから応答が返っていません')
 
-        # AI の応答も履歴に追加
-        conversation_history[user_id].append({"role": "assistant", "content": ai_message})
-
-        # 応答追加後に再度件数制限
-        if len(conversation_history[user_id]) > MAX_HISTORY:
-            conversation_history[user_id] = conversation_history[user_id][-MAX_HISTORY:]
+        add_conversation_history(request_key, "assistant", ai_message)
 
         return {"reply": ai_message}
 

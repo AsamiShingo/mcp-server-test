@@ -21,7 +21,7 @@ services:
   mcp-newarp:
     build: ./mcp-newarp
     volumes:
-      - ./mcp-newarp:/app
+      - ./mcp-newarp/app:/app
     environment:
       MCP_HTTP_PORT: "8081"
 
@@ -46,6 +46,8 @@ services:
     depends_on:
       mcp-bridge:
         condition: service_healthy
+    volumes:
+      - ./web-app/app:/app
     ports:
       - "8080:8080"
     environment:
