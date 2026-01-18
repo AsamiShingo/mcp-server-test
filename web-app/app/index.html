@@ -96,6 +96,19 @@ h2 {
     background: #ffa500;
     transform: scale(1.05);
 }
+
+.thinking {
+    font-style: italic;
+    opacity: 0.7;
+    animation: thinkingDots 1.5s infinite;
+}
+
+@keyframes thinkingDots {
+    0%   { content: "考え中"; }
+    33%  { content: "考え中."; }
+    66%  { content: "考え中.."; }
+    100% { content: "考え中..."; }
+}
 </style>
 <link rel="icon" href="data:,">
 </head>
@@ -109,7 +122,6 @@ h2 {
 </div>
 
 <script>
-// ページロード時にランダムなユーザーIDを生成
 const USER_ID = 'user_' + Math.random().toString(36).substring(2, 10);
 
 async function sendMessage() {
@@ -118,30 +130,81 @@ async function sendMessage() {
     const userText = input.value.trim();
     if (!userText) return;
 
-    // ユーザーのメッセージ表示
+    // ユーザー吹き出し
     chat.innerHTML += `<div class="message user">${userText}</div>`;
+
+    // AI吹き出し
+    const aiDiv = document.createElement("div");
+    aiDiv.className = "message ai";
+    aiDiv.textContent = "考え中";
+    chat.appendChild(aiDiv);
+
+    // 考え中アニメーション
+    let dots = 0;
+    const thinkingTimer = setInterval(() => {
+        dots = (dots + 1) % 4;
+        aiDiv.textContent = "考え中" + ".".repeat(dots);
+    }, 500);
+
     input.value = '';
     chat.scrollTop = chat.scrollHeight;
 
-    try {
-        const res = await fetch('/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            credentials: 'include',
-            body: JSON.stringify({
-                user_id: USER_ID,
-                message: userText
-            })
-        });
-        const data = await res.json();
+    const response = await fetch("/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ user_id: USER_ID, message: userText })
+    });
 
-        // AIの返答表示
-        const aiReply = data.reply || "AIから応答が返っていません";
-        chat.innerHTML += `<div class="message ai">${aiReply}</div>`;
-        chat.scrollTop = chat.scrollHeight;
-    } catch (err) {
-        chat.innerHTML += `<div class="message ai">エラー: ${err}</div>`;
-        chat.scrollTop = chat.scrollHeight;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let buffer = "";
+    let skipState = 3;
+    let started = false;
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop();
+
+        for (const part of parts) {
+            if (!part.startsWith("data: ")) continue;
+
+            const data = part.replace("data: ", "");
+            if (data === "[DONE]") {
+                clearInterval(thinkingTimer);
+                return;
+            }
+
+            const text = JSON.parse(data);
+
+            if (skipState > 0) {
+                const trimmed = text.trim();
+                if (
+                    trimmed.startsWith("```") ||
+                    trimmed.startsWith("xml") ||
+                    trimmed === ""
+                ) {
+                    skipState--;
+                    continue;
+                } else {
+                    skipState = 0;
+                }
+            }
+
+            if (!started) {
+                started = true;
+                clearInterval(thinkingTimer);
+                aiDiv.textContent = "";
+            }
+
+            aiDiv.textContent += text;
+            chat.scrollTop = chat.scrollHeight;
+        }
     }
 }
 

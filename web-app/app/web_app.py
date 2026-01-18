@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import os
 import requests
 import uuid
+import json
 from typing import Dict, List
 
 app = FastAPI()
@@ -79,6 +81,45 @@ def chat(req: ChatRequest, request: Request, response: Response):
     except Exception as e:
         print(f"web-error: {e}")
         return {"reply": f"エラー: {e}"}
+
+def stream_ollama(request_key: str, message: str):
+    add_conversation_history(request_key, "user", message)
+
+    payload = {
+        "model": MODEL_NAME,
+        "messages": conversation_history[request_key],
+        "stream": True
+    }
+
+    full_reply = ""
+    with requests.post(BRIDGE_URL, json=payload, stream=True, timeout=120) as r:
+        r.raise_for_status()
+
+        for line in r.iter_lines():
+            if not line:
+                continue
+
+            data = json.loads(line.decode("utf-8"))
+
+            # Ollama の stream フォーマットに依存
+            content = data.get("message", {}).get("content")
+            if content:
+                full_reply += content
+                yield f"data: {json.dumps(content)}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    add_conversation_history(request_key, "assistant", full_reply)
+
+@app.post("/chat/stream")
+def chat_stream(req: ChatRequest, request: Request, response: Response):
+    session_id = get_or_create_session_id(request, response)
+    request_key = f"{session_id}_{req.user_id}"
+
+    return StreamingResponse(
+        stream_ollama(request_key, req.message),
+        media_type="text/event-stream"
+    )
 
 @app.get("/")
 def root():
