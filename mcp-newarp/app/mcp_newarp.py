@@ -360,7 +360,7 @@ def get_user_master_group_short_name(groupShortName: str) -> dict:
 @mcp.tool(
     name="get_user_evaluation",
     description=(
-        "社員（ユーザ）の評価面談情報を取得して返すツールです。"
+        "社員（ユーザ）の評価面談情報を取得して返すツールです。過去の履歴も含めて返します。"
         "社員名（userName）をもとに検索します。"
         "userName は部分一致で検索されます。"
         "社員の自己評価や得意なこと苦手なこと、キャリアプランややりたいことを質問するときに使用してください。"
@@ -423,13 +423,16 @@ def get_user_evaluation(userName: str) -> dict:
 
             result_data = {}
             result_data["評価年月"] = fb_interview_sheet_data.get("info").get("periodName")
-            result_data["将来のあるべき姿"] = fb_interview_sheet_data.get("info").get("vision")
-            result_data["アピールポイント"] = fb_interview_sheet_data.get("info").get("appeal")
-            result_data["会社へ一言"] = fb_interview_sheet_data.get("info").get("note")
-            result_data["技術分類"] = fb_interview_sheet_data.get("info").get("evaluationKind")
-            result_data["評価ステージ"] = fb_interview_sheet_data.get("info").get("evaluationStage")
-            result_data["評価クラス"] = fb_interview_sheet_data.get("info").get("evaluationClass")
-            result_data["管理職からの期待"] = fb_interview_sheet_data.get("info").get("expectation")
+
+            fb_interview = {}
+            fb_interview["将来のあるべき姿"] = fb_interview_sheet_data.get("info").get("vision")
+            fb_interview["アピールポイント"] = fb_interview_sheet_data.get("info").get("appeal")
+            fb_interview["会社へ一言"] = fb_interview_sheet_data.get("info").get("note")
+            fb_interview["技術分類"] = fb_interview_sheet_data.get("info").get("evaluationKind")
+            fb_interview["評価ステージ"] = fb_interview_sheet_data.get("info").get("evaluationStage")
+            fb_interview["評価クラス"] = fb_interview_sheet_data.get("info").get("evaluationClass")
+            fb_interview["管理職からの期待"] = fb_interview_sheet_data.get("info").get("expectation")
+            result_data["評価全体情報"] = fb_interview
 
             past_goals = []        
             for past_goal in fb_interview_sheet_data.get("pastDetails"):
